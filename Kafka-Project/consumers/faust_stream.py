@@ -29,30 +29,53 @@ class TransformedStation(faust.Record):
     line: str
 
 
-# TODO: Define a Faust Stream that ingests data from the Kafka Connect stations topic and
-#   places it into a new topic with only the necessary information.
+# Now we define a Faust Stream that ingests data from the Kafka Connect stations topic and
+#  places it into a new topic with only the necessary information.
 app = faust.App("stations-stream", broker="kafka://localhost:9092", store="memory://")
-# TODO: Define the input Kafka Topic. Hint: What topic did Kafka Connect output to?
-# topic = app.topic("TODO", value_type=Station)
-# TODO: Define the output Kafka Topic
-# out_topic = app.topic("TODO", partitions=1)
-# TODO: Define a Faust Table
-#table = app.Table(
-#    # "TODO",
-#    # default=TODO,
-#    partitions=1,
-#    changelog_topic=out_topic,
-#)
 
+# Also define the input Kafka Topic. 
+topic = app.topic("com.udacity.stations", value_type=Station)
 
-#
-#
-# TODO: Using Faust, transform input `Station` records into `TransformedStation` records. Note that
+# Define the output Kafka Topic
+out_topic = app.topic("com.udacity.stations.faust.table", partitions=1)
+
+# Define a Faust Table
+table = app.Table(
+    "com.udacity.stations.table",
+    default=TransformedStation,
+    partitions=1,
+    changelog_topic=out_topic,
+)
+
+# Using Faust, transform input `Station` records into `TransformedStation` records. Note that
 # "line" is the color of the station. So if the `Station` record has the field `red` set to true,
 # then you would set the `line` of the `TransformedStation` record to the string `"red"`
-#
-#
 
 
+@app.agent(topic)
+async def station(stations):
+    async for station in stations:
+        
+        station_line = None
+        
+        if station.green is True:
+            station_line = "green"
+        elif station.blue is True:
+            station_line = "blue"
+        elif station.red is True:
+            station_line = "red"
+        else:
+            logger.info(f"There is no line colour for the station {station.station_id}")
+
+
+        transformed_station = TransformedStation(station_id=station.station_id, 
+                                                 station_name=station.station_name, 
+                                                 order=station.order, 
+                                                 line=station_line)
+        
+        table[station.station_id]=transformed_station
+        
+        
 if __name__ == "__main__":
     app.main()
+

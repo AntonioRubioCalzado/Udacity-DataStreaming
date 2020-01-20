@@ -15,9 +15,14 @@ class Weather:
 
     def process_message(self, message):
         """Handles incoming weather data"""
-        logger.info("weather process_message is incomplete - skipping")
-        #
-        #
-        # TODO: Process incoming weather messages. Set the temperature and status.
-        #
-        #
+
+        # Process incoming weather messages. Set the temperature and status.
+
+        logger.debug("Handles incoming weather data")
+        value = message.value()
+        
+        self.temperature = value["temperature"]
+        self.status = value["status"]
+        
+        logger.debug(f"Current weather is {self.status} and temperature is {self.temperature}.")
+        
